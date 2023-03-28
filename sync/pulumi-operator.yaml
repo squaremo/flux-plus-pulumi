@@ -33,6 +33,7 @@ metadata:
 spec:
   dependsOn:
   - name: pulumi-crds
+  targetNamespace: default
   interval: 1m0s
   path: ./deploy/yaml
   prune: true
