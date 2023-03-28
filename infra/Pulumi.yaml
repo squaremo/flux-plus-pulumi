@@ -1,0 +1,19 @@
+name: flux-plus-pulumi-infra
+runtime:
+  name: nodejs
+  options:
+    typescript: false
+description: Infrastructure for Flux+Pulumi demo
+
+config:
+  repo:
+    type: string
+    description: The git repo with which to sync, using Flux
+  branch:
+    type: string
+    description: The branch of the repo to sync
+    default: main
+  targetPath:
+    type: string
+    description: The path within the repo to sync
+    default: infra/

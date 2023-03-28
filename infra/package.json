@@ -1,0 +1,9 @@
+{
+    "name": "flux-plus-pulumi-infra",
+    "main": "index.js",
+    "dependencies": {
+        "@pulumi/kubernetes": "^3.0.0",
+        "@pulumi/pulumi": "^3.0.0",
+        "@worawat/flux": "^0.22.2"
+    }
+}
