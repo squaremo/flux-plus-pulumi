@@ -1,0 +1,35 @@
+name: flux-plus-pulumi-bootstrap
+runtime: yaml
+description: Bootstrap Flux+Pulumi demo
+outputs:
+  clusterName: ${primary.name}
+resources:
+  # taken almost verbatim from
+  # https://www.pulumi.com/registry/packages/gcp/api-docs/container/cluster/
+  # (the name of the Node Pool needed to be changed to pass validation)
+  default:
+    type: gcp:serviceAccount:Account
+    properties:
+      accountId: service-account-id
+      displayName: Service Account
+  primary:
+    type: gcp:container:Cluster
+    properties:
+      location: us-central1
+      # We can't create a cluster with no node pool defined, but we want to only use
+      #   # separately managed node pools. So we create the smallest possible default
+      #   # node pool and immediately delete it.
+      removeDefaultNodePool: true
+      initialNodeCount: 1
+  primary-nodes:
+    type: gcp:container:NodePool
+    properties:
+      location: us-central1
+      cluster: ${primary.name}
+      nodeCount: 1
+      nodeConfig:
+        preemptible: true
+        machineType: e2-medium
+        serviceAccount: ${default.email}
+        oauthScopes:
+          - https://www.googleapis.com/auth/cloud-platform
