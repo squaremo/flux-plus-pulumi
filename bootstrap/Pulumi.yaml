@@ -1,12 +1,44 @@
 name: flux-plus-pulumi-bootstrap
 runtime: yaml
 description: Bootstrap Flux+Pulumi demo
+
+variables:
+
+  kubeconfig: |
+    apiVersion: v1
+    kind: Config
+    clusters:
+    - cluster:
+        certificate-authority-data: ${primary.masterAuth.clusterCaCertificate}
+        server: https://${primary.endpoint}
+      name: ${primary.name}
+    contexts:
+    - context:
+        cluster: ${primary.name}
+        user: ${primary.name}
+      name: ${primary.name}
+    current-context: ${primary.name}
+    preferences: {}
+    users:
+    - name: ${primary.name}
+      user:
+        exec:
+          apiVersion: client.authentication.k8s.io/v1beta1
+          command: gke-gcloud-auth-plugin
+          installHint: Install gke-gcloud-auth-plugin for use with kubectl by following https://cloud.google.com/blog/products/containers-kubernetes/kubectl-auth-changes-in-gke
+          provideClusterInfo: true
+
 outputs:
   clusterName: ${primary.name}
+  kubeconfig:
+    fn::secret: ${kubeconfig}
+
 resources:
-  # taken almost verbatim from
+
+  # Create a cluster in GKE. This is taken almost verbatim from
   # https://www.pulumi.com/registry/packages/gcp/api-docs/container/cluster/
-  # (the name of the Node Pool needed to be changed to pass validation)
+  # (the name of the NodePool needed to be changed to pass
+  # validation)
   default:
     type: gcp:serviceAccount:Account
     properties:
