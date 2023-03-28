@@ -16,4 +16,4 @@ config:
   targetPath:
     type: string
     description: The path within the repo to sync
-    default: infra/
+    default: sync/
