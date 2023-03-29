@@ -6,6 +6,9 @@ runtime:
 description: Infrastructure for Flux+Pulumi demo
 
 config:
+  bootstrapOrg:
+    type: string
+    description: The Pulumi org with the bootstrap stack (which creates the cluster etc.)
   repo:
     type: string
     description: The git repo with which to sync, using Flux

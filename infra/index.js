@@ -19,7 +19,7 @@ const syncFlux = flux.getFluxSyncOutput({
     targetPath: config.require('targetPath'),
     url: config.require('repo'),
     branch: config.require('branch'),
-    secret: 'flulx-plus-pulumi', // don't need a secret, it's a public repo
+    secret: 'flux-plus-pulumi', // don't need a secret, it's a public repo
 });
 
 // this is necessary because, though the sync doesn't need credentials, there's no way to omit the secretRef field.
@@ -33,23 +33,38 @@ const secret = new k8s.core.v1.Secret(
     { provider: cluster },
 );
 
+// Pulumi operator Stack objects will need an access token to connect
+// to the Pulumi service, to store state. This assumes the token is in
+// the environment, and puts it in a well-known secret, so it can
+// referenced from Stack objects.
+const pulumiSecret = new k8s.core.v1.Secret(
+    'pulumi-token', {
+        metadata: {
+            name: 'pulumi-token',
+            namespace: 'default',
+        },
+        stringData: {
+            PULUMI_ACCESS_TOKEN: process.env['PULUMI_ACCESS_TOKEN'],
+        },
+    },
+    { provider: cluster },
+);
+
+// This is the key for using with the operator, fetched from the bootstrap stack. I could just create it here, since it's not used there. Bleep bloop.
+const googleSecret = new k8s.core.v1.Secret(
+    'google-key', {
+        metadata: {
+            name: 'google-key',
+            namespace: 'default',
+        },
+        stringData: {
+            GOOGLE_CREDENTIALS: bootstrapRef.requireOutput('serviceAccountKey'),
+        },
+    },
+    { provider: cluster },
+);
+
 const applyFluxYAMLs = new k8s.yaml.ConfigGroup('flux-apply',
                                                 { yaml: [installFlux.content, syncFlux.content] },
                                                 { provider: cluster });
 
-// I _could_ use another ConfigGroup to install the Pulumi operator --
-// but, since I've got Flux now, I can just drop some syncs into the
-// git repository, instead.
-
-// const pulumiOperator = new k8s.yaml.ConfigGroup('pulumi-apply',
-//                                                 {
-//                                                     files: [
-//                                                         'crds/pulumi.com_stacks.yaml',
-//                                                         'crds/pulumi.com_programs.yaml',
-//                                                         'yaml/service_account.yaml',
-//                                                         'yaml/role.yaml',
-//                                                         'yaml/role_binding.yaml',
-//                                                         'yaml/operator.yaml'
-//                                                     ].map(f => `https://raw.githubusercontent.com/pulumi/pulumi-kubernetes-operator/master/deploy/${f}`)
-//                                                 },
-//                                                 { provider: cluster })
