@@ -30,20 +30,65 @@ variables:
 
 outputs:
   clusterName: ${primary.name}
+  instanceName: ${appdb.name}
+  instanceConnectionName: ${appdb.connectionName}
   kubeconfig:
     fn::secret: ${kubeconfig}
+  serviceAccountKey:
+    fn::secret:
+      fn::fromBase64: ${key.privateKey}
 
 resources:
 
-  # Create a cluster in GKE. This is taken almost verbatim from
-  # https://www.pulumi.com/registry/packages/gcp/api-docs/container/cluster/
-  # (the name of the NodePool needed to be changed to pass
-  # validation)
+  # Service account for the operator to use. The key is assigned to an
+  # output, so it can be put in a Kubernetes secret for the operator.
   default:
     type: gcp:serviceAccount:Account
     properties:
       accountId: service-account-id
       displayName: Service Account
+
+  default_sqladmin:
+    type: gcp:projects:IAMMember
+    properties:
+      project: flux-plus-pulumi
+      member: serviceAccount:${default.email}
+      role: roles/cloudsql.admin
+
+  default_editor:
+    type: gcp:projects:IAMMember
+    properties:
+      project: flux-plus-pulumi
+      member: serviceAccount:${default.email}
+      role: roles/editor
+
+  # default_key:
+  #   type: gcp:projects:IAMMember
+  #   properties:
+  #     project: flux-plus-pulumi
+  #     member: serviceAccount:${default.email}
+  #     role: roles/iam.serviceAccountKeyAdmin
+
+  key:
+    type: gcp:serviceAccount:Key
+    properties:
+      serviceAccountId: ${default.name}
+      publicKeyType: TYPE_NONE
+
+  # Creating a DB instance is slow, so it gets done here. Creating the
+  # database is up to the app.
+  appdb:
+    type: gcp:sql:DatabaseInstance
+    properties:
+      databaseVersion: MYSQL_8_0
+      region: us-central1
+      settings:
+        tier: db-f1-micro
+      deletionProtection: false
+  
+  # Create a cluster in GKE. This is taken almost verbatim from
+  # https://www.pulumi.com/registry/packages/gcp/api-docs/container/cluster/
+  # (the name of the NodePool needed to be changed to pass validation)
   primary:
     type: gcp:container:Cluster
     properties:

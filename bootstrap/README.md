@@ -1,7 +1,9 @@
 # Bootstrap Flux+Pulumi
 
 This Pulumi program creates a GKE cluster for the whole thing to run
-in. I've used Pulumi YAML here to show how simple it is -- but that
+in, and a CloudSQL instance to house the application database.
+
+I've used Pulumi YAML here to show how simple it is -- but that
 stops me doing everything in one program, so there's also ../infra,
 which is written for NodeJS and does some things Pulumi YAML doesn't
 support.
@@ -10,10 +12,10 @@ How to use this:
 
 0. Install some prerequisites
 
-You'll need a Google Cloud account, and to **enable GKE in your
-project**. I clicked around in the Google Cloud console to achieve
-this; I needed to add a billing account to the new project, and you
-probably will too.
+You'll need a Google Cloud account and a fresh project, and to
+**enable GKE and CloudSQL in your project**. I clicked around in the
+Google Cloud console to achieve this; I needed to add a billing
+account to the new project, and you probably will too.
 
 The program here assumes you are authenticated with Google
 Cloud. [Installing the Google Cloud tool `gcloud`][gcloud-install]
