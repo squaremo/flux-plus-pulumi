@@ -1,0 +1,90 @@
+apiVersion: pulumi.com/v1
+kind: Program
+metadata:
+  name: flux-plus-pulumi-app
+program:
+  configuration:
+    bootstrapOrg:
+      type: String
+  resources:
+    bootstrapStackRef:
+      type: pulumi:pulumi:StackReference
+      properties:
+        name: ${bootstrapOrg}/flux-plus-pulumi-bootstrap/${pulumi.stack}
+
+    clientServiceAccount:
+      type: gcp:serviceAccount:Account
+      properties:
+        accountId: sql-client-for-app
+        displayName: SQL client for app
+    client_sqlclient:
+      type: gcp:projects:IAMMember
+      properties:
+        project: flux-plus-pulumi
+        member: serviceAccount:${clientServiceAccount.email}
+        role: roles/cloudsql.client
+    clientKey:
+      type: gcp:serviceAccount:Key
+      properties:
+        serviceAccountId: ${clientServiceAccount.name}
+        publicKeyType: TYPE_NONE
+    instanceSecret:
+      type: kubernetes:core/v1:Secret
+      properties:
+        metadata:
+          name: cloudsql-instance-credentials
+        stringData:
+          instanceConnectionName: ${bootstrapStackRef.outputs["instanceConnectionName"]}
+          key.json:
+            fn::fromBase64: ${clientKey.privateKey}
+        
+    wordpress:
+      type: gcp:sql:Database
+      properties:
+        name: wordpress
+        instance: ${bootstrapStackRef.outputs["instanceName"]}
+    pass:
+      type: random:RandomString
+      properties:
+        length: 24
+        special: true
+    user:
+      type: gcp:sql:User
+      properties:
+        instance: ${bootstrapStackRef.outputs["instanceName"]}
+        name: wp
+        password: ${pass.result}
+    secret:
+      type: kubernetes:core/v1:Secret
+      properties:
+        metadata:
+          name: sql-auth
+        stringData:
+          username: ${user.name}
+          password: ${pass.result}
+          foo: bar
+---
+apiVersion: pulumi.com/v1
+kind: Stack
+metadata:
+  name: app-infra-dev
+spec:
+  config:
+    gcp:project: flux-plus-pulumi
+    bootstrapOrg: squaremo
+  envRefs:
+    PULUMI_ACCESS_TOKEN:
+      type: Secret
+      secret:
+        name: pulumi-token
+        key: PULUMI_ACCESS_TOKEN
+    GOOGLE_CREDENTIALS:
+      type: Secret
+      secret:
+        name: google-key
+        key: GOOGLE_CREDENTIALS
+  stack: squaremo/flux-plus-pulumi-app/dev
+  programRef:
+    name: flux-plus-pulumi-app
+  destroyOnFinalize: true
+  refresh: true
